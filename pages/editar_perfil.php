@@ -186,18 +186,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </div>
             
-            <!-- Sección para cambiar contraseña -->
-            <div class="card sombra-card mt-4">
-                <div class="card-header bg-warning text-dark">
-                    <h5 class="mb-0">🔒 Cambiar Contraseña</h5>
-                </div>
-                <div class="card-body">
-                    <p class="text-muted mb-3">
-                        Para cambiar tu contraseña, por favor contacta con el administrador del sistema.
-                    </p>
-                    <a href="../index.php" class="btn btn-outline-warning">📞 Contactar Soporte</a>
-                </div>
-            </div>
+            
         </div>
     </div>
 </div>

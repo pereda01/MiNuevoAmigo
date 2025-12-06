@@ -104,7 +104,6 @@ $solicitudes_recientes_result = $conn->query($solicitudes_recientes_sql);
             <div class="card sombra-card mb-4">
                 <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">🐾 Mis Animales Recientes</h5>
-                    <a href="animals.php?mis_animales=1" class="btn btn-light btn-sm">Ver Todos</a>
                 </div>
                 <div class="card-body">
                     <?php if ($animales_recientes_result->num_rows > 0): ?>
@@ -217,9 +216,6 @@ $solicitudes_recientes_result = $conn->query($solicitudes_recientes_sql);
                         </a>
                         <a href="solicitudes_refugio.php" class="btn btn-outline-warning">
                             📨 Gestionar Solicitudes
-                        </a>
-                        <a href="animals.php?mis_animales=1" class="btn btn-outline-primary">
-                            🐾 Ver Mis Animales
                         </a>
                         <a href="profile.php" class="btn btn-outline-secondary">
                             👤 Mi Perfil
