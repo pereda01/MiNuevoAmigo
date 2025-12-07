@@ -65,7 +65,7 @@ $refugio_id = $_SESSION['user_id'];
                                 <label class="form-label">Tamaño *</label>
                                 <select class="form-select" name="tamano" required>
                                     <option value="">Seleccionar...</option>
-                                    <option value="pequeno">Pequeño</option>
+                                            <option value="pequeño">Pequeño</option>
                                     <option value="mediano">Mediano</option>
                                     <option value="grande">Grande</option>
                                 </select>
@@ -160,51 +160,36 @@ $refugio_id = $_SESSION['user_id'];
                         <!-- Fotos -->
                         <h5 class="text-success mb-3 mt-4">Fotos del Animal</h5>
                         <div class="mb-4">
-                            <label class="form-label">Subir fotos (máximo 4)</label>
-                            
-                            <!-- Contenedor para arrastrar y soltar -->
-                            <div class="drop-area border-2 border-dashed rounded-3 p-4 text-center mb-3"
-                                id="dropArea"
-                                style="border-color: #28a745; border-style: dashed; background-color: #f8fff9; cursor: pointer;">
-                                <div class="py-3">
-                                    <i class="bi bi-cloud-arrow-up text-success fs-1"></i>
-                                    <p class="mt-2 mb-1">Arrastra y suelta las fotos aquí</p>
-                                    <p class="text-muted small">o haz clic para seleccionar</p>
-                                    <p class="text-muted small">Máximo 4 fotos • Formatos: JPG, PNG, GIF</p>
-                                </div>
-                            </div>
-                            
-                            <!-- Input de archivo oculto -->
-                            <input type="file" 
-                                class="form-control d-none" 
-                                name="fotos[]" 
-                                id="fotosInput" 
-                                multiple 
-                                accept="image/*">
-                            
-                            <!-- Contador -->
-                            <div class="d-flex justify-content-between align-items-center mt-2">
-                                <div id="contadorFotos" class="form-text">
-                                    <span id="contadorNumero">0</span>/4 fotos seleccionadas
-                                </div>
-                                <button type="button" 
-                                        class="btn btn-sm btn-outline-danger" 
-                                        id="limpiarFotos"
-                                        style="display: none;">
-                                    <i class="bi bi-trash"></i> Quitar todas
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Vista previa en grid -->
-                        <div id="previewContainer" class="mb-4">
-                            <div class="row g-2" id="fotosPreview"></div>
+                            <label class="form-label">Subir hasta 4 fotos</label>
+                            <ul class="list-group mb-2">
+                                <li class="list-group-item">
+                                    <input type="file" class="form-control" name="fotos[]" accept="image/*">
+                                    <small class="form-text text-muted">Foto 1</small>
+                                </li>
+                                <li class="list-group-item">
+                                    <input type="file" class="form-control" name="fotos[]" accept="image/*">
+                                    <small class="form-text text-muted">Foto 2</small>
+                                </li>
+                                <li class="list-group-item">
+                                    <input type="file" class="form-control" name="fotos[]" accept="image/*">
+                                    <small class="form-text text-muted">Foto 3</small>
+                                </li>
+                                <li class="list-group-item">
+                                    <input type="file" class="form-control" name="fotos[]" accept="image/*">
+                                    <small class="form-text text-muted">Foto 4</small>
+                                </li>
+                            </ul>
+                            <small class="form-text text-muted">Formatos permitidos: JPG, PNG, GIF</small>
                         </div>
 
                         <!-- Alerta de error -->
                         <div class="alert alert-danger alert-dismissible fade" id="alertaError" role="alert">
                             <span id="mensajeError"></span>
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-success btn-lg">Guardar Animal</button>
+                            <a href="animals.php" class="btn btn-outline-secondary">Cancelar</a>
                         </div>
                     </form>
                 </div>
@@ -216,6 +201,21 @@ $refugio_id = $_SESSION['user_id'];
 <?php require_once '../includes/footer.php'; ?>
 <script src="<?php echo $base_path; ?>js/script.js"></script>
 <script>
+    // Mostrar errores del backend si existen en la URL
+    function getUrlParam(name) {
+        const params = new URLSearchParams(window.location.search);
+        return params.get(name);
+    }
+    const errorMsg = getUrlParam('error');
+    if (errorMsg) {
+        const alertaError = document.getElementById('alertaError');
+        const mensajeError = document.getElementById('mensajeError');
+        if (alertaError && mensajeError) {
+            mensajeError.textContent = decodeURIComponent(errorMsg.replace(/\+/g, ' '));
+            alertaError.classList.add('show');
+            alertaError.classList.remove('fade');
+        }
+    }
     // Inicializar validación del formulario de agregar animal
     if (document.getElementById('formAgregar')) {
         validarFormularioAnimal();

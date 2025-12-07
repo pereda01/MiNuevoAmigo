@@ -1,5 +1,5 @@
   <!-- Footer -->
-  <footer class="bg-dark text-white text-center py-4 mt-5">
+  <footer class="bg-dark text-white text-center py-4 mt-auto">
     <div class="container">
       <p class="mb-0">© 2025 MiNuevoAmigo. Todos los derechos reservados.</p>
     </div>

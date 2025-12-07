@@ -20,7 +20,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $tipo = trim($_POST['tipo'] ?? '');
         $edad_categoria = trim($_POST['edad_categoria'] ?? '');
         $sexo = trim($_POST['sexo'] ?? '');
+        // Corregir valor de tamaño para que coincida con el enum de la base de datos
         $tamano = trim($_POST['tamano'] ?? '');
+        if ($tamano === 'pequeno') $tamano = 'pequeño';
         $raza = trim($_POST['raza'] ?? '');
         $descripcion = trim($_POST['descripcion'] ?? '');
         $vacunado = isset($_POST['vacunado']) ? 1 : 0;
@@ -40,30 +42,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($sexo)) $errores[] = 'Sexo requerido';
         if (empty($tamano)) $errores[] = 'Tamaño requerido';
         if (strlen($descripcion) < 10) $errores[] = 'Descripción muy corta';
-        if (empty($_FILES['fotos']['name'][0])) $errores[] = 'Al menos una foto requerida';
-
-        // Validar fotos
-        if (!empty($_FILES['fotos']['name'][0])) {
-            if (count($_FILES['fotos']['name']) > 4) {
-                $errores[] = 'Máximo 4 fotos permitidas';
+        // Comprobar si hay al menos una foto entre los inputs
+        $hayFoto = false;
+        if (!empty($_FILES['fotos']['name']) && is_array($_FILES['fotos']['name'])) {
+            foreach ($_FILES['fotos']['name'] as $fname) {
+                if (!empty($fname)) { $hayFoto = true; break; }
             }
-            foreach ($_FILES['fotos']['tmp_name'] as $key => $tmp_name) {
-                if ($_FILES['fotos']['error'][$key] === 0) {
-                    $file_size = $_FILES['fotos']['size'][$key];
-                    $file_type = mime_content_type($tmp_name);
-                    
-                    if ($file_size > 5 * 1024 * 1024) {
-                        $errores[] = 'Una o más fotos exceden 5MB';
-                    }
-                    if (strpos($file_type, 'image/') === false) {
-                        $errores[] = 'Solo se permiten imágenes';
-                    }
+        }
+        if (!$hayFoto) $errores[] = 'Al menos una foto requerida';
+
+        // Validar fotos (recorrer cada entrada y validar las que tengan nombre)
+        $totalFotos = 0;
+        if (!empty($_FILES['fotos']['name']) && is_array($_FILES['fotos']['name'])) {
+            foreach ($_FILES['fotos']['name'] as $key => $fname) {
+                if (empty($fname)) continue; // input vacío
+                $totalFotos++;
+                // comprobar errores y datos
+                if (!isset($_FILES['fotos']['error'][$key]) || $_FILES['fotos']['error'][$key] !== 0) {
+                    $errores[] = 'Error en subida de archivo';
+                    continue;
+                }
+                $file_size = $_FILES['fotos']['size'][$key];
+                $tmp_name = $_FILES['fotos']['tmp_name'][$key];
+                $file_type = mime_content_type($tmp_name);
+                if ($file_size > 5 * 1024 * 1024) {
+                    $errores[] = 'Una o más fotos exceden 5MB';
+                }
+                if (strpos($file_type, 'image/') === false) {
+                    $errores[] = 'Solo se permiten imágenes';
                 }
             }
+            if ($totalFotos > 4) $errores[] = 'Máximo 4 fotos permitidas';
         }
 
         if (!empty($errores)) {
-            header("Location: ../pages/agregar_animal.php?error=" . urlencode(implode(', ', $errores)));
+            header("Location: ../pages/agregar_animal.php?error=" . urlencode(implode(' | ', $errores)));
             exit();
         }
 
@@ -73,7 +86,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                      relacion_otros_animales, peso, necesidades_especiales, id_refugio, estado) 
                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'disponible')");
 
-        $stmt->bind_param("sssssssisisisidis", 
+        // Tipos: nombre(s), tipo(s), edad_categoria(s), sexo(s), raza(s), tamano(s), descripcion(s),
+        // vacunado(i), vacunas(s), esterilizado(i), nivel_energia(s), relacion_ninos(s),
+        // relacion_otros_animales(s), peso(d), necesidades_especiales(s), id_refugio(i)
+        $stmt->bind_param("sssssssisisssdsi", 
             $nombre, $tipo, $edad_categoria, $sexo, $raza, $tamano, $descripcion,
             $vacunado, $vacunas, $esterilizado, $nivel_energia, $relacion_ninos,
             $relacion_otros_animales, $peso, $necesidades_especiales, $refugio_id);
@@ -81,18 +97,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($stmt->execute()) {
             $animal_id = $conn->insert_id;
             $stmt->close();
-            
             // Procesar fotos si se subieron
-            if (!empty($_FILES['fotos']['name'][0])) {
-                if (!procesarFotos($animal_id, $conn)) {
-                    header("Location: ../pages/agregar_animal.php?error=fallo_fotos");
-                    exit();
+            if (!empty($_FILES['fotos']['name']) && is_array($_FILES['fotos']['name'])) {
+                // comprobar si hay al menos una foto no vacía antes de llamar a procesarFotos
+                $hayFoto = false;
+                foreach ($_FILES['fotos']['name'] as $fn) { if (!empty($fn)) { $hayFoto = true; break; } }
+                if ($hayFoto) {
+                    if (!procesarFotos($animal_id, $conn)) {
+                        header("Location: ../pages/agregar_animal.php?error=fallo_fotos");
+                        exit();
+                    }
                 }
             }
 
             header("Location: ../pages/animals.php?success=animal_agregado");
         } else {
-            header("Location: ../pages/agregar_animal.php?error=guardar_fallo");
+            header("Location: ../pages/agregar_animal.php?error=" . urlencode('guardar_fallo: ' . $stmt->error));
         }
         exit();
     } elseif ($action === 'editar') {
@@ -243,11 +263,14 @@ function procesarFotos($animal_id, $conn) {
     }
 
     return $fotos_guardadas > 0;
+
 }
 
- elseif ($action === 'eliminar_foto') {
+// Acción para eliminar foto
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'eliminar_foto') {
     $foto_id = intval($_POST['foto_id'] ?? 0);
     $animal_id = intval($_POST['animal_id'] ?? 0);
+    $session_user_id = intval($_SESSION['user_id'] ?? 0);
     
     if ($foto_id === 0 || $animal_id === 0) {
         header("Location: ../pages/editar_animal.php?id=$animal_id&error=id_invalido");
@@ -286,7 +309,6 @@ function procesarFotos($animal_id, $conn) {
         header("Location: ../pages/editar_animal.php?id=$animal_id&error=fallo_eliminar");
     }
     exit();
-}
 }
 
 $conn->close();
