@@ -31,7 +31,7 @@ if ($result->num_rows === 0) {
 $animal = $result->fetch_assoc();
 
 // Obtener fotos del animal
-$fotos_sql = "SELECT * FROM fotos_animales WHERE id_animal = $animal_id ORDER BY es_principal DESC, orden ASC";
+$fotos_sql = "SELECT * FROM fotos_animales WHERE id_animal = $animal_id ORDER BY id ASC";
 $fotos_result = $conn->query($fotos_sql);
 ?>
 

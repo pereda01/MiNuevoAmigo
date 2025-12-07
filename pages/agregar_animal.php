@@ -1,8 +1,8 @@
 <?php
+require_once '../includes/header.php';
 require_once '../config/database.php';
 
 // Verificar que el usuario sea un refugio
-session_start();
 if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'refugio') {
     header("Location: login.php");
     exit();
@@ -10,8 +10,6 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'refugio') {
 
 $refugio_id = $_SESSION['user_id'];
 ?>
-
-<?php require_once '../includes/header.php'; ?>
 
 <div class="container py-4">
     <div class="row justify-content-center">
@@ -21,9 +19,9 @@ $refugio_id = $_SESSION['user_id'];
                     <h4 class="mb-0">➕ Agregar Nuevo Animal</h4>
                 </div>
                 <div class="card-body">
-                    <form action="../processes/animal_process.php" method="POST" enctype="multipart/form-data">
+                    <form action="../processes/animal_process.php" method="POST" enctype="multipart/form-data" id="formAgregar" novalidate>
                         <input type="hidden" name="action" value="agregar">
-                        <input type="hidden" name="refugio_id" value="<?php echo $refugio_id; ?>">
+                        <input type="hidden" name="refugio_id" value="<?php echo htmlspecialchars($refugio_id, ENT_QUOTES, 'UTF-8'); ?>">
 
                         <!-- Información básica -->
                         <h5 class="text-success mb-3">Información Básica</h5>
@@ -147,9 +145,10 @@ $refugio_id = $_SESSION['user_id'];
                         <!-- Descripción y necesidades -->
                         <div class="mb-3">
                             <label class="form-label">Descripción *</label>
-                            <textarea class="form-control" name="descripcion" rows="4" 
+                            <textarea class="form-control" name="descripcion" rows="4" minlength="10"
                                       placeholder="Describe al animal, su personalidad, historia, etc..." 
                                       required></textarea>
+                            <small class="form-text text-muted">Mínimo 10 caracteres</small>
                         </div>
 
                         <div class="mb-3">
@@ -159,17 +158,53 @@ $refugio_id = $_SESSION['user_id'];
                         </div>
 
                         <!-- Fotos -->
-                        <h5 class="text-success mb-3 mt-4">Fotos</h5>
-                        <div class="mb-3">
-                            <label class="form-label">Subir fotos del animal (máximo 4)</label>
-                            <input type="file" class="form-control" name="fotos[]" multiple 
-                                accept="image/*" id="fotosInput" max="4">
-                            <div class="form-text">Puedes seleccionar hasta 4 fotos. La primera será la principal.</div>
-                            <div id="contadorFotos" class="form-text text-muted">0/4 fotos seleccionadas</div>
+                        <h5 class="text-success mb-3 mt-4">Fotos del Animal</h5>
+                        <div class="mb-4">
+                            <label class="form-label">Subir fotos (máximo 4)</label>
+                            
+                            <!-- Contenedor para arrastrar y soltar -->
+                            <div class="drop-area border-2 border-dashed rounded-3 p-4 text-center mb-3"
+                                id="dropArea"
+                                style="border-color: #28a745; border-style: dashed; background-color: #f8fff9; cursor: pointer;">
+                                <div class="py-3">
+                                    <i class="bi bi-cloud-arrow-up text-success fs-1"></i>
+                                    <p class="mt-2 mb-1">Arrastra y suelta las fotos aquí</p>
+                                    <p class="text-muted small">o haz clic para seleccionar</p>
+                                    <p class="text-muted small">Máximo 4 fotos • Formatos: JPG, PNG, GIF</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Input de archivo oculto -->
+                            <input type="file" 
+                                class="form-control d-none" 
+                                name="fotos[]" 
+                                id="fotosInput" 
+                                multiple 
+                                accept="image/*">
+                            
+                            <!-- Contador -->
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <div id="contadorFotos" class="form-text">
+                                    <span id="contadorNumero">0</span>/4 fotos seleccionadas
+                                </div>
+                                <button type="button" 
+                                        class="btn btn-sm btn-outline-danger" 
+                                        id="limpiarFotos"
+                                        style="display: none;">
+                                    <i class="bi bi-trash"></i> Quitar todas
+                                </button>
+                            </div>
                         </div>
-                        <div class="d-grid gap-2 mt-4">
-                            <button type="submit" class="btn btn-success btn-lg">Guardar Animal</button>
-                            <a href="animals.php" class="btn btn-outline-secondary">Cancelar</a>
+
+                        <!-- Vista previa en grid -->
+                        <div id="previewContainer" class="mb-4">
+                            <div class="row g-2" id="fotosPreview"></div>
+                        </div>
+
+                        <!-- Alerta de error -->
+                        <div class="alert alert-danger alert-dismissible fade" id="alertaError" role="alert">
+                            <span id="mensajeError"></span>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     </form>
                 </div>
@@ -179,3 +214,10 @@ $refugio_id = $_SESSION['user_id'];
 </div>
 
 <?php require_once '../includes/footer.php'; ?>
+<script src="<?php echo $base_path; ?>js/script.js"></script>
+<script>
+    // Inicializar validación del formulario de agregar animal
+    if (document.getElementById('formAgregar')) {
+        validarFormularioAnimal();
+    }
+</script>

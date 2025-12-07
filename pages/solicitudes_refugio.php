@@ -51,7 +51,7 @@ $sql = "SELECT sa.*, a.nombre as nombre_animal, a.tipo, a.descripcion,
                u_adoptante.username as username_adoptante,
                ad.nombre as nombre_adoptante, ad.apellidos, ad.telefono, ad.ciudad as ciudad_adoptante,
                sa.fecha_solicitud, sa.estado, sa.fecha_resolucion,
-               (SELECT ruta_foto FROM fotos_animales WHERE id_animal = a.id AND es_principal = 1 LIMIT 1) as foto_principal
+               (SELECT ruta_foto FROM fotos_animales WHERE id_animal = a.id ORDER BY id ASC LIMIT 1) as foto_principal
         FROM solicitudes_adopcion sa
         JOIN animales a ON sa.id_animal = a.id
         JOIN usuarios u_adoptante ON sa.id_adoptante = u_adoptante.id

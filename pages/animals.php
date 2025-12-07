@@ -11,7 +11,7 @@ $ciudad = $_GET['ciudad'] ?? '';
 $sql = "SELECT a.*, 
                COALESCE(ad.ciudad, ref.ciudad) as ciudad_refugio,
                ref.nombre_refugio,
-               (SELECT ruta_foto FROM fotos_animales WHERE id_animal = a.id AND es_principal = 1 LIMIT 1) as foto_principal
+               (SELECT ruta_foto FROM fotos_animales WHERE id_animal = a.id ORDER BY id ASC LIMIT 1) as foto_principal
         FROM animales a 
         JOIN usuarios u ON a.id_refugio = u.id 
         LEFT JOIN refugios ref ON u.id = ref.id

@@ -37,38 +37,40 @@ $logout_path = $base_path . 'pages/logout.php';
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MiNuevoAmigo - Adopta una Mascota</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="<?php echo $base_path; ?>css/style.css" />
+  <link rel="stylesheet" href="<?php echo $base_path; ?>css/style.css?v=<?php echo @filemtime(__DIR__ . '/../css/style.css'); ?>" />
 </head>
 <body>
 
   <!-- Barra de navegación -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-success">
     <div class="container">
-      <a class="navbar-brand fw-bold" href="<?php echo $index_path; ?>">MiNuevoAmigo</a>
+      <a class="fw-bold d-flex align-items-center" href="<?php echo $index_path; ?>">
+        <img src="<?php echo $base_path; ?>images/logo.png" alt="MiNuevoAmigo" class="navbar-logo">
+      </a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menu">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="menu">
-        <ul class="navbar-nav ms-auto">
+        <ul class="navbar-nav ms-auto fs-5">
           <li class="nav-item">
-            <a class="nav-link" href="<?php echo $index_path; ?>">Inicio</a>
+            <a class="nav-link" href="<?php echo $index_path; ?>"><span class="nav-emoji" aria-hidden="true">🏠</span> Inicio</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="<?php echo $animals_path; ?>">Animales</a>
+            <a class="nav-link" href="<?php echo $animals_path; ?>"><span class="nav-emoji" aria-hidden="true">🐾</span> Animales</a>
           </li>
           <?php if(isset($_SESSION['user_id'])): ?>
             <li class="nav-item">
-              <a class="nav-link" href="<?php echo $profile_path; ?>">Mi Perfil</a>
+              <a class="nav-link" href="<?php echo $profile_path; ?>"><span class="nav-emoji" aria-hidden="true">👤</span> Mi Perfil</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="<?php echo $logout_path; ?>">Cerrar Sesión</a>
+              <a class="nav-link" href="<?php echo $logout_path; ?>"><span class="nav-emoji" aria-hidden="true">🔒</span> Cerrar Sesión</a>
             </li>
           <?php else: ?>
             <li class="nav-item">
-              <a class="nav-link" href="<?php echo $login_path; ?>">Iniciar sesión</a>
+              <a class="nav-link" href="<?php echo $login_path; ?>"><span class="nav-emoji" aria-hidden="true">🔑</span> Iniciar sesión</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="<?php echo $register_path; ?>">Registrarse</a>
+              <a class="nav-link" href="<?php echo $register_path; ?>"><span class="nav-emoji" aria-hidden="true">✍️</span> Registrarse</a>
             </li>
           <?php endif; ?>
         </ul>

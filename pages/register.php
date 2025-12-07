@@ -42,7 +42,14 @@ require_once '../config/database.php';
 
                         <div class="mb-3">
                             <label for="password" class="form-label">Contraseña *</label>
-                            <input type="password" class="form-control" id="password" name="password" required>
+                            <input type="password" class="form-control" id="password" name="password" required minlength="6">
+                            <small class="text-muted">Mínimo 6 caracteres</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password_confirm" class="form-label">Repetir Contraseña *</label>
+                            <input type="password" class="form-control" id="password_confirm" name="password_confirm" required minlength="6">
+                            <small id="password-match-error" class="text-danger d-none">Las contraseñas no coinciden</small>
                         </div>
 
                         <!-- Información específica para adoptantes -->
@@ -72,7 +79,7 @@ require_once '../config/database.php';
                         <!-- Información común -->
                         <div class="mb-3">
                             <label for="telefono" class="form-label">Teléfono</label>
-                            <input type="tel" class="form-control" id="telefono" name="telefono">
+                            <input type="number" class="form-control" id="telefono" name="telefono">
                         </div>
 
                         <div class="mb-3">

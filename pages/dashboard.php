@@ -1,8 +1,8 @@
 <?php
+require_once '../includes/header.php';
 require_once '../config/database.php';
 
-// Verificar que el usuario esté logueado y sea refugio
-session_start();
+// Verificar que el usuario esté logueado y sea refugio (ya se hizo en header.php)
 if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'refugio') {
     header("Location: login.php");
     exit();
@@ -10,50 +10,47 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'refugio') {
 
 $refugio_id = $_SESSION['user_id'];
 
-// Obtener estadísticas del refugio
-$animales_sql = "SELECT COUNT(*) as total FROM animales WHERE id_refugio = '$refugio_id'";
-$animales_result = $conn->query($animales_sql);
-$total_animales = $animales_result->fetch_assoc()['total'];
+// Obtener estadísticas del refugio con prepared statements
+$stmt = $conn->prepare("SELECT 
+                       (SELECT COUNT(*) FROM animales WHERE id_refugio = ?) as total,
+                       (SELECT COUNT(*) FROM animales WHERE id_refugio = ? AND estado = 'disponible') as activos,
+                       (SELECT COUNT(*) FROM solicitudes_adopcion sa JOIN animales a ON sa.id_animal = a.id WHERE a.id_refugio = ? AND sa.estado = 'pendiente') as pendientes,
+                       (SELECT COUNT(*) FROM solicitudes_adopcion sa JOIN animales a ON sa.id_animal = a.id WHERE a.id_refugio = ? AND sa.estado = 'aceptada') as exitosas");
+$stmt->bind_param("iiii", $refugio_id, $refugio_id, $refugio_id, $refugio_id);
+$stmt->execute();
+$stats = $stmt->get_result()->fetch_assoc();
+$stmt->close();
 
-$animales_activos_sql = "SELECT COUNT(*) as activos FROM animales WHERE id_refugio = '$refugio_id' AND estado = 'disponible'";
-$animales_activos_result = $conn->query($animales_activos_sql);
-$animales_activos = $animales_activos_result->fetch_assoc()['activos'];
-
-$solicitudes_pendientes_sql = "SELECT COUNT(*) as pendientes 
-                              FROM solicitudes_adopcion sa 
-                              JOIN animales a ON sa.id_animal = a.id 
-                              WHERE a.id_refugio = '$refugio_id' AND sa.estado = 'pendiente'";
-$solicitudes_pendientes_result = $conn->query($solicitudes_pendientes_sql);
-$solicitudes_pendientes = $solicitudes_pendientes_result->fetch_assoc()['pendientes'];
-
-$adopciones_exitosas_sql = "SELECT COUNT(*) as exitosas 
-                           FROM solicitudes_adopcion sa 
-                           JOIN animales a ON sa.id_animal = a.id 
-                           WHERE a.id_refugio = '$refugio_id' AND sa.estado = 'aceptada'";
-$adopciones_exitosas_result = $conn->query($adopciones_exitosas_sql);
-$adopciones_exitosas = $adopciones_exitosas_result->fetch_assoc()['exitosas'];
+$total_animales = $stats['total'] ?? 0;
+$animales_activos = $stats['activos'] ?? 0;
+$solicitudes_pendientes = $stats['pendientes'] ?? 0;
+$adopciones_exitosas = $stats['exitosas'] ?? 0;
 
 // Obtener animales recientes del refugio
-$animales_recientes_sql = "SELECT a.*, 
-                                  (SELECT ruta_foto FROM fotos_animales WHERE id_animal = a.id AND es_principal = 1 LIMIT 1) as foto_principal
-                           FROM animales a 
-                           WHERE a.id_refugio = '$refugio_id' 
-                           ORDER BY a.id DESC 
-                           LIMIT 6";
-$animales_recientes_result = $conn->query($animales_recientes_sql);
+$stmt = $conn->prepare("SELECT a.*, 
+                               (SELECT ruta_foto FROM fotos_animales WHERE id_animal = a.id ORDER BY id ASC LIMIT 1) as foto_principal
+                        FROM animales a 
+                        WHERE a.id_refugio = ? 
+                        ORDER BY a.id DESC 
+                        LIMIT 6");
+$stmt->bind_param("i", $refugio_id);
+$stmt->execute();
+$animales_recientes_result = $stmt->get_result();
+$stmt->close();
 
 // Obtener solicitudes recientes
-$solicitudes_recientes_sql = "SELECT sa.*, a.nombre as nombre_animal, a.tipo,
-                                     sa.fecha_solicitud, sa.estado
-                              FROM solicitudes_adopcion sa
-                              JOIN animales a ON sa.id_animal = a.id
-                              WHERE a.id_refugio = '$refugio_id'
-                              ORDER BY sa.fecha_solicitud DESC
-                              LIMIT 5";
-$solicitudes_recientes_result = $conn->query($solicitudes_recientes_sql);
+$stmt = $conn->prepare("SELECT sa.*, a.nombre as nombre_animal, a.tipo,
+                               sa.fecha_solicitud, sa.estado
+                        FROM solicitudes_adopcion sa
+                        JOIN animales a ON sa.id_animal = a.id
+                        WHERE a.id_refugio = ?
+                        ORDER BY sa.fecha_solicitud DESC
+                        LIMIT 5");
+$stmt->bind_param("i", $refugio_id);
+$stmt->execute();
+$solicitudes_recientes_result = $stmt->get_result();
+$stmt->close();
 ?>
-
-<?php require_once '../includes/header.php'; ?>
 
 <div class="container py-4">
     <!-- Header del Dashboard -->
@@ -128,7 +125,7 @@ $solicitudes_recientes_result = $conn->query($solicitudes_recientes_sql);
                                             </div>
                                         <?php endif; ?>
                                         <div class="card-body">
-                                            <h6 class="card-title"><?php echo $animal['nombre']; ?></h6>
+                                            <h6 class="card-title"><?php echo htmlspecialchars($animal['nombre'], ENT_QUOTES, 'UTF-8'); ?></h6>
                                             <p class="card-text small mb-1">
                                                 <span class="badge bg-<?php echo $animal['estado'] == 'disponible' ? 'success' : 'secondary'; ?>">
                                                     <?php echo ucfirst($animal['estado']); ?>
@@ -140,10 +137,16 @@ $solicitudes_recientes_result = $conn->query($solicitudes_recientes_sql);
                                             </p>
                                         </div>
                                         <div class="card-footer bg-transparent p-2">
-                                            <a href="animal_detalle.php?id=<?php echo $animal['id']; ?>" 
-                                               class="btn btn-outline-success btn-sm w-100">
-                                                Ver
-                                            </a>
+                                            <div class="d-grid gap-2">
+                                                <a href="animal_detalle.php?id=<?php echo $animal['id']; ?>" 
+                                                   class="btn btn-outline-success btn-sm">
+                                                    Ver
+                                                </a>
+                                                <a href="editar_animal.php?id=<?php echo $animal['id']; ?>" 
+                                                   class="btn btn-outline-primary btn-sm">
+                                                    ✏️ Editar
+                                                </a>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

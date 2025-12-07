@@ -1,8 +1,8 @@
 <?php
+require_once '../includes/header.php';
 require_once '../config/database.php';
 
-// Verificar que el usuario esté logueado
-session_start();
+// Verificar que el usuario esté logueado (ya se hizo en header.php)
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit();
@@ -11,55 +11,55 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 $user_type = $_SESSION['user_type'];
 
-// Obtener datos del usuario según su tipo
+// Obtener datos del usuario según su tipo - Una sola consulta
 if ($user_type === 'adoptante') {
-    $sql = "SELECT u.username, u.email, a.nombre, a.apellidos, a.telefono, a.ciudad 
-            FROM usuarios u 
-            JOIN adoptantes a ON u.id = a.id 
-            WHERE u.id = $user_id";
+    $stmt = $conn->prepare("SELECT u.username, u.email, a.nombre, a.apellidos, a.telefono, a.ciudad 
+                            FROM usuarios u 
+                            JOIN adoptantes a ON u.id = a.id 
+                            WHERE u.id = ?");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $user_data = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    
+    // Obtener estadísticas en una sola consulta
+    $stmt = $conn->prepare("SELECT 
+                            COUNT(*) as total,
+                            SUM(CASE WHEN estado = 'aceptada' THEN 1 ELSE 0 END) as aceptadas
+                            FROM solicitudes_adopcion 
+                            WHERE id_adoptante = ?");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $stats = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    
+    $total_solicitudes = $stats['total'] ?? 0;
+    $solicitudes_aceptadas = $stats['aceptadas'] ?? 0;
 } else {
-    $sql = "SELECT u.username, u.email, r.nombre_refugio, r.nombre_contacto, r.telefono, r.ciudad, r.descripcion 
-            FROM usuarios u 
-            JOIN refugios r ON u.id = r.id 
-            WHERE u.id = $user_id";
-}
-
-$result = $conn->query($sql);
-$user_data = $result->fetch_assoc();
-
-// Obtener estadísticas según el tipo de usuario
-if ($user_type === 'adoptante') {
-    // Estadísticas para adoptante
-    $solicitudes_sql = "SELECT COUNT(*) as total FROM solicitudes_adopcion WHERE id_adoptante = '$user_id'";
-    $solicitudes_result = $conn->query($solicitudes_sql);
-    $total_solicitudes = $solicitudes_result->fetch_assoc()['total'];
+    $stmt = $conn->prepare("SELECT u.username, u.email, r.nombre_refugio, r.nombre_contacto, r.telefono, r.ciudad 
+                            FROM usuarios u 
+                            JOIN refugios r ON u.id = r.id 
+                            WHERE u.id = ?");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $user_data = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
     
-    $aceptadas_sql = "SELECT COUNT(*) as aceptadas FROM solicitudes_adopcion WHERE id_adoptante = '$user_id' AND estado = 'aceptada'";
-    $aceptadas_result = $conn->query($aceptadas_sql);
-    $solicitudes_aceptadas = $aceptadas_result->fetch_assoc()['aceptadas'];
-} else {
-    // Estadísticas para refugio
-    $animales_sql = "SELECT COUNT(*) as total FROM animales WHERE id_refugio = '$user_id' AND estado = 'disponible'";
-    $animales_result = $conn->query($animales_sql);
-    $animales_activos = $animales_result->fetch_assoc()['total'];
+    // Obtener estadísticas en una sola consulta
+    $stmt = $conn->prepare("SELECT 
+                            (SELECT COUNT(*) FROM animales WHERE id_refugio = ? AND estado = 'disponible') as animales_activos,
+                            (SELECT COUNT(*) FROM solicitudes_adopcion sa JOIN animales a ON sa.id_animal = a.id WHERE a.id_refugio = ? AND sa.estado = 'pendiente') as solicitudes_pendientes,
+                            (SELECT COUNT(*) FROM solicitudes_adopcion sa JOIN animales a ON sa.id_animal = a.id WHERE a.id_refugio = ? AND sa.estado = 'aceptada') as adopciones_exitosas");
+    $stmt->bind_param("iii", $user_id, $user_id, $user_id);
+    $stmt->execute();
+    $stats = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
     
-    $solicitudes_pendientes_sql = "SELECT COUNT(*) as pendientes 
-                                  FROM solicitudes_adopcion sa 
-                                  JOIN animales a ON sa.id_animal = a.id 
-                                  WHERE a.id_refugio = '$user_id' AND sa.estado = 'pendiente'";
-    $solicitudes_pendientes_result = $conn->query($solicitudes_pendientes_sql);
-    $solicitudes_pendientes = $solicitudes_pendientes_result->fetch_assoc()['pendientes'];
-    
-    $adopciones_exitosas_sql = "SELECT COUNT(*) as exitosas 
-                               FROM solicitudes_adopcion sa 
-                               JOIN animales a ON sa.id_animal = a.id 
-                               WHERE a.id_refugio = '$user_id' AND sa.estado = 'aceptada'";
-    $adopciones_exitosas_result = $conn->query($adopciones_exitosas_sql);
-    $adopciones_exitosas = $adopciones_exitosas_result->fetch_assoc()['exitosas'];
+    $animales_activos = $stats['animales_activos'] ?? 0;
+    $solicitudes_pendientes = $stats['solicitudes_pendientes'] ?? 0;
+    $adopciones_exitosas = $stats['adopciones_exitosas'] ?? 0;
 }
 ?>
-
-<?php require_once '../includes/header.php'; ?>
 
 <div class="container py-5">
     <div class="row">
@@ -129,45 +129,40 @@ if ($user_type === 'adoptante') {
                         <!-- Perfil de adoptante -->
                         <div class="row mb-3">
                             <div class="col-sm-4 fw-bold">Nombre:</div>
-                            <div class="col-sm-8"><?php echo $user_data['nombre'] . ' ' . $user_data['apellidos']; ?></div>
+                            <div class="col-sm-8"><?php echo htmlspecialchars($user_data['nombre'] . ' ' . $user_data['apellidos'], ENT_QUOTES, 'UTF-8'); ?></div>
                         </div>
                     <?php else: ?>
                         <!-- Perfil de refugio -->
                         <div class="row mb-3">
                             <div class="col-sm-4 fw-bold">Refugio:</div>
-                            <div class="col-sm-8"><?php echo $user_data['nombre_refugio']; ?></div>
+                            <div class="col-sm-8"><?php echo htmlspecialchars($user_data['nombre_refugio'], ENT_QUOTES, 'UTF-8'); ?></div>
                         </div>
                         <div class="row mb-3">
                             <div class="col-sm-4 fw-bold">Contacto:</div>
-                            <div class="col-sm-8"><?php echo $user_data['nombre_contacto']; ?></div>
+                            <div class="col-sm-8"><?php echo htmlspecialchars($user_data['nombre_contacto'], ENT_QUOTES, 'UTF-8'); ?></div>
                         </div>
-                        <?php if (!empty($user_data['descripcion'])): ?>
-                        <div class="row mb-3">
-                            <div class="col-sm-4 fw-bold">Descripción:</div>
-                            <div class="col-sm-8"><?php echo $user_data['descripcion']; ?></div>
-                        </div>
-                        <?php endif; ?>
+                        <!-- La tabla `refugios` no tiene columna 'descripcion' en la nueva estructura -->
                     <?php endif; ?>
 
                     <!-- Información común -->
                     <div class="row mb-3">
                         <div class="col-sm-4 fw-bold">Usuario:</div>
-                        <div class="col-sm-8"><?php echo $user_data['username']; ?></div>
+                        <div class="col-sm-8"><?php echo htmlspecialchars($user_data['username'], ENT_QUOTES, 'UTF-8'); ?></div>
                     </div>
                     <div class="row mb-3">
                         <div class="col-sm-4 fw-bold">Email:</div>
-                        <div class="col-sm-8"><?php echo $user_data['email']; ?></div>
+                        <div class="col-sm-8"><?php echo htmlspecialchars($user_data['email'], ENT_QUOTES, 'UTF-8'); ?></div>
                     </div>
                     <?php if (!empty($user_data['telefono'])): ?>
                     <div class="row mb-3">
                         <div class="col-sm-4 fw-bold">Teléfono:</div>
-                        <div class="col-sm-8"><?php echo $user_data['telefono']; ?></div>
+                        <div class="col-sm-8"><?php echo htmlspecialchars($user_data['telefono'], ENT_QUOTES, 'UTF-8'); ?></div>
                     </div>
                     <?php endif; ?>
                     <?php if (!empty($user_data['ciudad'])): ?>
                     <div class="row mb-3">
                         <div class="col-sm-4 fw-bold">Ciudad:</div>
-                        <div class="col-sm-8"><?php echo $user_data['ciudad']; ?></div>
+                        <div class="col-sm-8"><?php echo htmlspecialchars($user_data['ciudad'], ENT_QUOTES, 'UTF-8'); ?></div>
                     </div>
                     <?php endif; ?>
                 </div>

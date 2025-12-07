@@ -14,7 +14,7 @@ $adoptante_id = $_SESSION['user_id'];
 $sql = "SELECT sa.*, a.nombre as nombre_animal, a.tipo, 
                r.nombre_refugio, r.nombre_contacto,
                sa.fecha_solicitud, sa.estado, sa.fecha_resolucion,
-               (SELECT ruta_foto FROM fotos_animales WHERE id_animal = a.id AND es_principal = 1 LIMIT 1) as foto_principal
+               (SELECT ruta_foto FROM fotos_animales WHERE id_animal = a.id ORDER BY id ASC LIMIT 1) as foto_principal
         FROM solicitudes_adopcion sa
         JOIN animales a ON sa.id_animal = a.id
         JOIN usuarios u ON a.id_refugio = u.id

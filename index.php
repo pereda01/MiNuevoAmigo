@@ -28,40 +28,81 @@ require_once 'includes/header.php';
     </div>
   </section>
 
-  <!-- Sección de Valores o beneficios -->
-  <section class="container my-5">
+  <!-- Sección de Valores -->
+  <section class="container my-5 bg-light p-4 rounded">
     <div class="text-center mb-4">
       <h2 class="fw-bold text-success">Nuestros Valores</h2>
       <p class="text-muted fs-5">Conoce lo que hace especial a MiNuevoAmigo</p>
     </div>
 
     <div class="row text-center">
-      <!-- Valor 1 -->
+      <!-- Card 1 -->
       <div class="col-md-4 mb-4">
         <div class="sombra-card p-4 h-100">
-          <div class="icono-beneficio mb-3">🏠</div>
+          <img src="images/refugio.jpg" alt="Buscar" class="img-fluid card-image mb-3">
           <h4>Refugios Verificados</h4>
           <p>Trabajamos solo con refugios y dueños responsables para asegurar el bienestar de los animales.</p>
         </div>
       </div>
 
-      <!-- Valor 2 -->
+      <!-- Card 2 -->
       <div class="col-md-4 mb-4">
         <div class="sombra-card p-4 h-100">
-          <div class="icono-beneficio mb-3">💖</div>
+          <img src="images/gatoCorazon.jpg" alt="Buscar" class="img-fluid card-image mb-3">
           <h4>Adopciones Responsables</h4>
           <p>Fomentamos la adopción consciente para crear lazos duraderos entre personas y mascotas.</p>
         </div>
       </div>
 
-      <!-- Valor 3 -->
+      <!-- Card 3 -->
       <div class="col-md-4 mb-4">
         <div class="sombra-card p-4 h-100">
-          <div class="icono-beneficio mb-3">🔍</div>
+          <img src="images/animales_bonitos.png" alt="Buscar" class="img-fluid card-image mb-3">
           <h4>Búsqueda Personalizada</h4>
           <p>Encuentra a tu compañero ideal con filtros de tipo, edad y tamaño para una mejor compatibilidad.</p>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- Sección Cómo funciona -->
+  <section class="container my-5 bg-light p-4 rounded">
+    <div class="text-center mb-4">
+      <h2 class="fw-bold text-success">¿Cómo funciona?</h2>
+      <p class="text-muted fs-5">Tres pasos sencillos para encontrar a tu compañero ideal.</p>
+    </div>
+
+      <!-- Card 1 -->
+    <div class="row text-center">
+      <div class="col-md-4 mb-4">
+        <div class="sombra-card p-4 h-100">
+          <img src="images/buscar.jpeg" alt="Buscar" class="img-fluid card-image mb-3">
+          <h4>Buscar</h4>
+          <p>Explora perfiles filtrando por tipo, edad y tamaño para encontrar mascotas compatibles.</p>
+        </div>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="col-md-4 mb-4">
+        <div class="sombra-card p-4 h-100">
+          <img src="images/contactar.jpg" alt="Contactar" class="img-fluid card-image mb-3">
+          <h4>Contactar</h4>
+          <p>Envía una solicitud o mensaje al refugio para coordinar una visita o conocer más.</p>
+        </div>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="col-md-4 mb-4">
+        <div class="sombra-card p-4 h-100">
+          <img src="images/adoptar.jpg" alt="Adoptar" class="img-fluid card-image mb-3">
+          <h4>Adoptar</h4>
+          <p>Completa el proceso con el refugio y brinda un hogar responsable y cariñoso.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-center mt-4">
+      <a href="pages/animals.php" class="btn btn-success btn-lg">Ver animales disponibles</a>
     </div>
   </section>
 
