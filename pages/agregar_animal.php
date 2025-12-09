@@ -51,7 +51,7 @@ $prefill = [
                         </div>
                     <?php endif; ?>
 
-                    <form action="../processes/animal_process.php" method="POST" enctype="multipart/form-data" id="formAgregar" novalidate>
+                    <form action="../processes/animal_process.php" method="POST" enctype="multipart/form-data" id="formAgregar">
                         <input type="hidden" name="action" value="agregar">
                         <input type="hidden" name="refugio_id" value="<?php echo htmlspecialchars($refugio_id, ENT_QUOTES, 'UTF-8'); ?>">
 
@@ -192,10 +192,10 @@ $prefill = [
                         <!-- Fotos -->
                         <h5 class="text-success mb-3 mt-4">Fotos del Animal</h5>
                         <div class="mb-4">
-                            <label class="form-label">Subir hasta 4 fotos</label>
+                            <label class="form-label">Subir hasta 4 fotos * (al menos 1 requerida)</label>
                             <ul class="list-group mb-2">
                                 <li class="list-group-item">
-                                    <input type="file" class="form-control" name="fotos[]" accept="image/*">
+                                    <input type="file" class="form-control" name="fotos[]" accept="image/*" required>
                                     <small class="form-text text-muted">Foto 1</small>
                                 </li>
                                 <li class="list-group-item">
@@ -226,9 +226,3 @@ $prefill = [
 </div>
 
 <?php require_once '../includes/footer.php'; ?>
-<script src="<?php echo $base_path; ?>js/script.js"></script>
-<script>
-    if (document.getElementById('formAgregar')) {
-        validarFormularioAnimal();
-    }
-</script>

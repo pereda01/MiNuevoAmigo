@@ -52,24 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             '&peso=' . urlencode($peso ?? '') .
             '&necesidades_especiales=' . urlencode($necesidades_especiales);
 
-        // Validación de campos requeridos
+        // Validación de fotos
         $errores = [];
-        if (strlen($nombre) < 2) $errores[] = 'Nombre inválido';
-        if (empty($tipo)) $errores[] = 'Tipo requerido';
-        if (empty($edad_categoria)) $errores[] = 'Edad requerida';
-        if (empty($sexo)) $errores[] = 'Sexo requerido';
-        if (empty($tamano)) $errores[] = 'Tamaño requerido';
-        if (strlen($descripcion) < 10) $errores[] = 'Descripción muy corta';
-        // Comprobar si hay al menos una foto entre los inputs
-        $hayFoto = false;
-        if (!empty($_FILES['fotos']['name']) && is_array($_FILES['fotos']['name'])) {
-            foreach ($_FILES['fotos']['name'] as $fname) {
-                if (!empty($fname)) { $hayFoto = true; break; }
-            }
-        }
-        if (!$hayFoto) $errores[] = 'Al menos una foto requerida';
-
-        // Validar fotos (recorrer cada entrada y validar las que tengan nombre)
         $totalFotos = 0;
         if (!empty($_FILES['fotos']['name']) && is_array($_FILES['fotos']['name'])) {
             foreach ($_FILES['fotos']['name'] as $key => $fname) {
@@ -82,7 +66,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $file_size = $_FILES['fotos']['size'][$key];
                 $tmp_name = $_FILES['fotos']['tmp_name'][$key];
-                $file_type = mime_content_type($tmp_name);
+                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                $file_type = finfo_file($finfo, $tmp_name);
+                finfo_close($finfo);
                 if ($file_size > 5 * 1024 * 1024) {
                     $errores[] = 'Una o más fotos exceden 5MB';
                 }
@@ -165,14 +151,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $peso = !empty($_POST['peso']) ? floatval($_POST['peso']) : null;
         $necesidades_especiales = trim($_POST['necesidades_especiales'] ?? '');
 
-        // Validación de campos requeridos
+        // Validación: solo validar fotos si se suben nuevas
         $errores = [];
-        if (strlen($nombre) < 2) $errores[] = 'Nombre inválido';
-        if (empty($tipo)) $errores[] = 'Tipo requerido';
-        if (empty($edad_categoria)) $errores[] = 'Edad requerida';
-        if (empty($sexo)) $errores[] = 'Sexo requerido';
-        if (empty($tamano)) $errores[] = 'Tamaño requerido';
-        if (strlen($descripcion) < 10) $errores[] = 'Descripción muy corta';
 
         // Validar nuevas fotos si se subieron
         if (!empty($_FILES['fotos']['name'][0])) {
@@ -182,7 +162,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             foreach ($_FILES['fotos']['tmp_name'] as $key => $tmp_name) {
                 if ($_FILES['fotos']['error'][$key] === 0) {
                     $file_size = $_FILES['fotos']['size'][$key];
-                    $file_type = mime_content_type($tmp_name);
+                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                    $file_type = finfo_file($finfo, $tmp_name);
+                    finfo_close($finfo);
                     
                     if ($file_size > 5 * 1024 * 1024) {
                         $errores[] = 'Una o más fotos exceden 5MB';
