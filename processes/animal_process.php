@@ -34,6 +34,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $peso = !empty($_POST['peso']) ? floatval($_POST['peso']) : null;
         $necesidades_especiales = trim($_POST['necesidades_especiales'] ?? '');
 
+        // Construir URL de redirección con todos los datos del formulario
+        $redirectUrl = '../pages/agregar_animal.php?' .
+            'nombre=' . urlencode($nombre) .
+            '&tipo=' . urlencode($tipo) .
+            '&edad_categoria=' . urlencode($edad_categoria) .
+            '&sexo=' . urlencode($sexo) .
+            '&tamano=' . urlencode($tamano) .
+            '&raza=' . urlencode($raza) .
+            '&descripcion=' . urlencode($descripcion) .
+            '&vacunado=' . urlencode($vacunado) .
+            '&vacunas=' . urlencode($vacunas) .
+            '&esterilizado=' . urlencode($esterilizado) .
+            '&nivel_energia=' . urlencode($nivel_energia) .
+            '&relacion_ninos=' . urlencode($relacion_ninos) .
+            '&relacion_otros_animales=' . urlencode($relacion_otros_animales) .
+            '&peso=' . urlencode($peso ?? '') .
+            '&necesidades_especiales=' . urlencode($necesidades_especiales);
+
         // Validación de campos requeridos
         $errores = [];
         if (strlen($nombre) < 2) $errores[] = 'Nombre inválido';
@@ -76,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (!empty($errores)) {
-            header("Location: ../pages/agregar_animal.php?error=" . urlencode(implode(' | ', $errores)));
+            header("Location: " . $redirectUrl . "&error=" . urlencode(implode(' | ', $errores)));
             exit();
         }
 

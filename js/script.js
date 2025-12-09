@@ -109,6 +109,45 @@ function validarFormularioAnimal() {
     }
 }
 
+// Validación del formulario de registro
+function initRegisterForm() {
+    const formRegistro = document.getElementById('formRegistro');
+    if (!formRegistro) return;
+
+    const passwordInput = document.getElementById('password');
+    const passwordConfirmInput = document.getElementById('password_confirm');
+    const adoptanteRadio = document.getElementById('adoptante');
+    const refugioRadio = document.getElementById('refugio');
+    const adoptanteInfo = document.getElementById('adoptante-info');
+    const refugioInfo = document.getElementById('refugio-info');
+
+    // Mostrar/ocultar información según tipo de cuenta
+    if (adoptanteRadio && refugioRadio) {
+        adoptanteRadio.addEventListener('change', function() {
+            adoptanteInfo.style.display = 'block';
+            refugioInfo.style.display = 'none';
+        });
+        refugioRadio.addEventListener('change', function() {
+            adoptanteInfo.style.display = 'none';
+            refugioInfo.style.display = 'block';
+        });
+    }
+
+    // Validar al enviar el formulario
+    formRegistro.addEventListener('submit', function(e) {
+        // Validar que las contraseñas coincidan
+        if (passwordInput.value !== passwordConfirmInput.value) {
+            e.preventDefault();
+            // Redirigir con error
+            window.location.href = '../pages/register.php?error=' + encodeURIComponent('Las contraseñas no coinciden');
+            return false;
+        }
+
+        // Si todo es válido, el formulario se envía
+        return true;
+    });
+}
+
 // Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
     validarFormularioAnimal();
