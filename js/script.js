@@ -23,6 +23,29 @@ function validarFormularioAnimal() {
                     }
                 }
             }
+            
+            // Validar que haya al menos 1 foto (existente o nueva)
+            let totalFotos = 0;
+            
+            // Contar fotos existentes (data-foto-id no vacío)
+            document.querySelectorAll('.foto-slot').forEach((slot) => {
+                if (slot.dataset.fotoId && slot.dataset.fotoId.trim() !== '') {
+                    totalFotos++;
+                }
+            });
+            
+            // Contar fotos nuevas seleccionadas
+            document.querySelectorAll('input[type="file"][name="fotos[]"]').forEach((inp) => {
+                if (inp.files && inp.files.length > 0) {
+                    totalFotos++;
+                }
+            });
+            
+            if (totalFotos === 0) {
+                e.preventDefault();
+                alert('El animal debe tener al menos una foto. Por favor, sube una foto.');
+                return false;
+            }
         });
     }
 }

@@ -52,7 +52,20 @@ $stmt->close();
                         </div>
                     <?php endif; ?>
 
-                    <form action="../processes/animal_process.php" method="POST" enctype="multipart/form-data" id="formEditar" novalidate>
+                    <?php if (isset($_GET['success'])): ?>
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <?php 
+                            $mensajes = [
+                                'foto_eliminada' => 'Foto eliminada correctamente',
+                                'animal_actualizado' => 'Animal actualizado correctamente'
+                            ];
+                            echo $mensajes[$_GET['success']] ?? 'Operación completada';
+                            ?>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    <?php endif; ?>
+
+                    <form action="../processes/animal_process.php" method="POST" enctype="multipart/form-data" id="formEditar">
                         <input type="hidden" name="action" value="editar">
                         <input type="hidden" name="animal_id" value="<?php echo htmlspecialchars($animal_id, ENT_QUOTES, 'UTF-8'); ?>">
                         <input type="hidden" name="refugio_id" value="<?php echo htmlspecialchars($refugio_id, ENT_QUOTES, 'UTF-8'); ?>">
@@ -179,36 +192,47 @@ $stmt->close();
                             <textarea class="form-control" name="necesidades_especiales" rows="3" placeholder="Alergias, medicación, cuidados especiales..."><?php echo htmlspecialchars($animal['necesidades_especiales'], ENT_QUOTES, 'UTF-8'); ?></textarea>
                         </div>
 
-                        <!-- Fotos actuales -->
-                        <?php if (!empty($fotos)): ?>
-                        <h5 class="text-success mb-3 mt-4">Fotos Actuales</h5>
-                        <div class="row mb-3">
-                            <?php foreach ($fotos as $index => $foto): ?>
-                            <div class="col-md-4 mb-3">
-                                <div class="card">
-                                    <img src="../uploads/animals/<?php echo htmlspecialchars($foto['ruta_foto'], ENT_QUOTES, 'UTF-8'); ?>" class="card-img-top" alt="Foto animal" style="height: 150px; object-fit: cover;">
-                                    <div class="card-body p-2">
-                                            <?php if ($index === 0): ?>
-                                                <span class="badge bg-success mb-2">Principal</span>
-                                            <?php endif; ?>
-                                        <button type="button" class="btn btn-sm btn-danger" onclick="confirmarEliminarFoto(<?php echo $foto['id']; ?>)">
-                                            🗑️ Eliminar
-                                        </button>
-                                    </div>
+                        <!-- Fotos (combinadas: actuales + slots para nuevas) -->
+                        <h5 class="text-success mb-3 mt-4">Fotos del Animal (máximo 4)</h5>
+                        <div class="row mb-4" id="fotosContainer">
+                            <?php 
+                            // Mostrar 4 slots: los primeros con fotos existentes, los restantes vacíos
+                            for ($i = 0; $i < 4; $i++): 
+                                $foto = $fotos[$i] ?? null;
+                                $hasFoto = $foto !== null;
+                            ?>
+                            <div class="col-md-6 col-lg-3 mb-3">
+                                <div class="card h-100 position-relative foto-slot" data-slot="<?php echo $i; ?>" data-foto-id="<?php echo $hasFoto ? $foto['id'] : ''; ?>">
+                                    <?php if ($hasFoto): ?>
+                                        <!-- Foto existente -->
+                                        <img src="../uploads/animals/<?php echo htmlspecialchars($foto['ruta_foto'], ENT_QUOTES, 'UTF-8'); ?>" class="card-img-top" alt="Foto animal" style="height: 150px; object-fit: cover;">
+                                        <div class="card-body p-2 d-flex flex-column">
+                                            <div class="mt-auto">
+                                                <button type="button" class="btn btn-sm btn-danger w-100" onclick="confirmarEliminarFoto(<?php echo $foto['id']; ?>, <?php echo $i; ?>)">
+                                                    🗑️ Eliminar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    <?php else: ?>
+                                        <!-- Slot vacío para foto nueva -->
+                                        <div class="card-body p-3 d-flex flex-column align-items-center justify-content-center" style="height: 180px; background-color: #f8f9fa; cursor: pointer;" onclick="document.getElementById('foto-input-<?php echo $i; ?>').click()">
+                                            <div class="text-center text-muted">
+                                                <div style="font-size: 2rem; margin-bottom: 0.5rem;">📸</div>
+                                                <small>Haz clic para subir foto</small>
+                                            </div>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
                             </div>
-                                <?php endforeach; ?>
+                            <?php endfor; ?>
                         </div>
-                        <?php endif; ?>
-
-                        <!-- Agregar nuevas fotos -->
-                        <h5 class="text-success mb-3 mt-4">Agregar Nuevas Fotos</h5>
-                        <div class="mb-3">
-                            <label class="form-label">Subir fotos del animal (máximo 4)</label>
-                            <input type="file" class="form-control" name="fotos[]" multiple accept="image/*" id="fotosInput">
-                            <div class="form-text">Puedes seleccionar hasta 4 fotos nuevas. Si subes fotos nuevas, se agregarán a las existentes.</div>
-                            <div id="contadorFotos" class="form-text text-muted">0/4 fotos seleccionadas</div>
-                        </div>
+                        
+                        <!-- Inputs file ocultos para fotos -->
+                        <?php for ($i = 0; $i < 4; $i++): ?>
+                            <input type="file" id="foto-input-<?php echo $i; ?>" class="d-none" name="fotos[]" accept="image/*">
+                        <?php endfor; ?>
+                        
+                        <small class="form-text text-muted d-block mb-3">Formatos permitidos: JPG, PNG, GIF (máximo 5MB cada una) - Mínimo 1 foto requerida</small>
 
                         <div class="d-grid gap-2 mt-4">
                             <button type="submit" class="btn btn-success btn-lg">Guardar Cambios</button>
@@ -224,7 +248,8 @@ $stmt->close();
 <?php require_once '../includes/footer.php'; ?>
 
 <script>
-function confirmarEliminarFoto(fotoId) {
+// Cuando se elimina una foto existente, recarga la página para actualizar
+function confirmarEliminarFoto(fotoId, slotIndex) {
     if (confirm('¿Estás seguro de que quieres eliminar esta foto?')) {
         // Crear un formulario temporal para enviar la solicitud
         const form = document.createElement('form');
@@ -254,37 +279,25 @@ function confirmarEliminarFoto(fotoId) {
     }
 }
 
-// Contador de fotos
-document.getElementById('fotosInput')?.addEventListener('change', function() {
-    const files = this.files;
-    const maxFotos = 4;
-    
-    if (files.length > maxFotos) {
-        alert(`Máximo ${maxFotos} fotos permitidas. Seleccionaste ${files.length}`);
-        this.value = '';
-        document.getElementById('contadorFotos').textContent = '0/4 fotos seleccionadas';
-        return;
-    }
-    
-    let fotosValidas = 0;
-    for (let file of files) {
-        if (!file.type.startsWith('image/')) {
-            alert(`El archivo "${file.name}" no es una imagen.`);
-            this.value = '';
-            document.getElementById('contadorFotos').textContent = '0/4 fotos seleccionadas';
-            return;
+// Al subir archivo en slot vacío - mostrar preview
+document.querySelectorAll('input[type="file"][name="fotos[]"]').forEach((input, index) => {
+    input.addEventListener('change', function() {
+        if (this.files && this.files.length > 0) {
+            const file = this.files[0];
+            const slot = document.querySelector(`.foto-slot[data-slot="${index}"]`);
+            
+            // Mostrar preview de la foto seleccionada
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                slot.innerHTML = `
+                    <img src="${e.target.result}" class="card-img-top" alt="Preview" style="height: 150px; object-fit: cover;">
+                    <div class="card-body p-2 text-center text-muted">
+                        <small>Foto nueva seleccionada</small>
+                    </div>
+                `;
+            };
+            reader.readAsDataURL(file);
         }
-        
-        if (file.size > 5 * 1024 * 1024) {
-            alert(`El archivo "${file.name}" excede 5MB.`);
-            this.value = '';
-            document.getElementById('contadorFotos').textContent = '0/4 fotos seleccionadas';
-            return;
-        }
-        
-        fotosValidas++;
-    }
-    
-    document.getElementById('contadorFotos').textContent = `${fotosValidas}/4 fotos seleccionadas`;
+    });
 });
 </script>

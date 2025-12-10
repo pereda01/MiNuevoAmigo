@@ -146,6 +146,10 @@ $stmt->close();
                                                    class="btn btn-outline-primary btn-sm">
                                                     ✏️ Editar
                                                 </a>
+                                                <a href="#" onclick="return confirm('¿Estás seguro de que deseas borrar a <?php echo htmlspecialchars($animal['nombre'], ENT_QUOTES, 'UTF-8'); ?>?') && (window.location.href='../processes/animal_process.php?action=eliminar&animal_id=<?php echo $animal['id']; ?>', true)" 
+                                                   class="btn btn-outline-danger btn-sm">
+                                                    🗑️ Borrar
+                                                </a>
                                             </div>
                                         </div>
                                     </div>

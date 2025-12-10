@@ -2,6 +2,57 @@
 require_once '../config/database.php';
 require_once '../includes/auth.php';
 
+// Acción para eliminar foto (ANTES de la validación de refugio_id)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'eliminar_foto') {
+    $foto_id = intval($_POST['foto_id'] ?? 0);
+    $animal_id = intval($_POST['animal_id'] ?? 0);
+    $session_user_id = intval($_SESSION['user_id'] ?? 0);
+    
+    // Verificar autenticación
+    if (!usuarioLogueado() || $_SESSION['user_type'] !== 'refugio') {
+        header("Location: ../pages/editar_animal.php?id=$animal_id&error=no_autorizado");
+        exit();
+    }
+    
+    if ($foto_id === 0 || $animal_id === 0) {
+        header("Location: ../pages/editar_animal.php?id=$animal_id&error=id_invalido");
+        exit();
+    }
+
+    // Verificar que la foto pertenece a un animal del refugio
+    $stmt = $conn->prepare("SELECT fa.id, fa.ruta_foto FROM fotos_animales fa 
+                           JOIN animales a ON fa.id_animal = a.id 
+                           WHERE fa.id = ? AND fa.id_animal = ? AND a.id_refugio = ?");
+    $stmt->bind_param("iii", $foto_id, $animal_id, $session_user_id);
+    $stmt->execute();
+    $foto = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    
+    if (!$foto) {
+        header("Location: ../pages/editar_animal.php?id=$animal_id&error=no_autorizado");
+        exit();
+    }
+
+    // Eliminar archivo del servidor
+    $upload_dir = '../uploads/animals/';
+    $file_path = $upload_dir . $foto['ruta_foto'];
+    if (file_exists($file_path)) {
+        unlink($file_path);
+    }
+
+    // Eliminar registro de foto de la BD
+    $stmt = $conn->prepare("DELETE FROM fotos_animales WHERE id = ? AND id_animal = ?");
+    $stmt->bind_param("ii", $foto_id, $animal_id);
+    
+    if ($stmt->execute()) {
+        $stmt->close();
+        header("Location: ../pages/editar_animal.php?id=$animal_id&success=foto_eliminada");
+    } else {
+        header("Location: ../pages/editar_animal.php?id=$animal_id&error=fallo_eliminar");
+    }
+    exit();
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     $refugio_id = intval($_POST['refugio_id'] ?? 0);
@@ -195,28 +246,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($stmt->execute()) {
             $stmt->close();
             
-            // Eliminar fotos si se solicita
-            if (!empty($_POST['fotos_eliminar'])) {
-                $fotos_a_eliminar = $_POST['fotos_eliminar'];
-                foreach ($fotos_a_eliminar as $foto_id) {
-                    $foto_id = intval($foto_id);
-                    $stmt = $conn->prepare("SELECT ruta_foto FROM fotos_animales WHERE id = ? AND id_animal = ?");
-                    $stmt->bind_param("ii", $foto_id, $animal_id);
-                    $stmt->execute();
-                    $result = $stmt->get_result();
-                    if ($result->num_rows > 0) {
-                        $foto = $result->fetch_assoc();
-                        $file_path = '../uploads/animals/' . $foto['ruta_foto'];
-                        if (file_exists($file_path)) {
-                            unlink($file_path);
-                        }
-                        $del_stmt = $conn->prepare("DELETE FROM fotos_animales WHERE id = ?");
-                        $del_stmt->bind_param("i", $foto_id);
-                        $del_stmt->execute();
-                        $del_stmt->close();
+            // Procesar nuevas fotos
+            // Contar cuántas fotos actuales tiene el animal
+            $stmt = $conn->prepare("SELECT COUNT(*) as total FROM fotos_animales WHERE id_animal = ?");
+            $stmt->bind_param("i", $animal_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $row = $result->fetch_assoc();
+            $fotosActuales = $row['total'];
+            $stmt->close();
+            
+            // Contar nuevas fotos que se van a subir
+            $nuevasFotos = 0;
+            if (!empty($_FILES['fotos']['name'][0])) {
+                foreach ($_FILES['fotos']['tmp_name'] as $key => $tmp_name) {
+                    if ($_FILES['fotos']['error'][$key] === 0) {
+                        $nuevasFotos++;
                     }
-                    $stmt->close();
                 }
+            }
+            
+            // Validar que queden al menos 1 foto (existentes + nuevas)
+            $fotosFinales = $fotosActuales + $nuevasFotos;
+            if ($fotosFinales < 1) {
+                header("Location: ../pages/editar_animal.php?id=$animal_id&error=" . urlencode('El animal debe tener al menos una foto'));
+                exit();
             }
             
             // Procesar nuevas fotos si se subieron
@@ -266,47 +320,62 @@ function procesarFotos($animal_id, $conn) {
 
 }
 
-// Acción para eliminar foto
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'eliminar_foto') {
-    $foto_id = intval($_POST['foto_id'] ?? 0);
-    $animal_id = intval($_POST['animal_id'] ?? 0);
+// Acción para eliminar animal
+if (isset($_GET['action']) && $_GET['action'] === 'eliminar') {
+    $animal_id = intval($_GET['animal_id'] ?? 0);
     $session_user_id = intval($_SESSION['user_id'] ?? 0);
     
-    if ($foto_id === 0 || $animal_id === 0) {
-        header("Location: ../pages/editar_animal.php?id=$animal_id&error=id_invalido");
+    if ($animal_id === 0) {
+        header("Location: ../pages/dashboard.php?error=id_invalido");
         exit();
     }
-
-    // Verificar que la foto pertenece a un animal del refugio
-    $stmt = $conn->prepare("SELECT fa.id, fa.ruta_foto FROM fotos_animales fa 
-                           JOIN animales a ON fa.id_animal = a.id 
-                           WHERE fa.id = ? AND fa.id_animal = ? AND a.id_refugio = ?");
-    $stmt->bind_param("iii", $foto_id, $animal_id, $session_user_id);
+    
+    // Verificar que el animal pertenece al refugio del usuario
+    $stmt = $conn->prepare("SELECT id FROM animales WHERE id = ? AND id_refugio = ?");
+    $stmt->bind_param("ii", $animal_id, $session_user_id);
     $stmt->execute();
-    $foto = $stmt->get_result()->fetch_assoc();
+    if ($stmt->get_result()->num_rows === 0) {
+        $stmt->close();
+        header("Location: ../pages/dashboard.php?error=no_autorizado");
+        exit();
+    }
     $stmt->close();
     
-    if (!$foto) {
-        header("Location: ../pages/editar_animal.php?id=$animal_id&error=no_autorizado");
-        exit();
+    // Eliminar fotos del servidor
+    $stmt = $conn->prepare("SELECT ruta_foto FROM fotos_animales WHERE id_animal = ?");
+    $stmt->bind_param("i", $animal_id);
+    $stmt->execute();
+    $fotos_result = $stmt->get_result();
+    while ($foto = $fotos_result->fetch_assoc()) {
+        $file_path = '../uploads/animals/' . $foto['ruta_foto'];
+        if (file_exists($file_path)) {
+            unlink($file_path);
+        }
     }
-
-    // Eliminar archivo del servidor
-    $upload_dir = '../uploads/animals/';
-    $file_path = $upload_dir . $foto['ruta_foto'];
-    if (file_exists($file_path)) {
-        unlink($file_path);
-    }
-
-    // Eliminar registro de foto de la BD
-    $stmt = $conn->prepare("DELETE FROM fotos_animales WHERE id = ? AND id_animal = ?");
-    $stmt->bind_param("ii", $foto_id, $animal_id);
+    $stmt->close();
+    
+    // Eliminar fotos de la BD
+    $stmt = $conn->prepare("DELETE FROM fotos_animales WHERE id_animal = ?");
+    $stmt->bind_param("i", $animal_id);
+    $stmt->execute();
+    $stmt->close();
+    
+    // Eliminar solicitudes asociadas
+    $stmt = $conn->prepare("DELETE FROM solicitudes_adopcion WHERE id_animal = ?");
+    $stmt->bind_param("i", $animal_id);
+    $stmt->execute();
+    $stmt->close();
+    
+    // Eliminar el animal
+    $stmt = $conn->prepare("DELETE FROM animales WHERE id = ? AND id_refugio = ?");
+    $stmt->bind_param("ii", $animal_id, $session_user_id);
     
     if ($stmt->execute()) {
         $stmt->close();
-        header("Location: ../pages/editar_animal.php?id=$animal_id&success=foto_eliminada");
+        header("Location: ../pages/dashboard.php?success=animal_eliminado");
     } else {
-        header("Location: ../pages/editar_animal.php?id=$animal_id&error=fallo_eliminar");
+        $stmt->close();
+        header("Location: ../pages/dashboard.php?error=fallo_eliminar");
     }
     exit();
 }
