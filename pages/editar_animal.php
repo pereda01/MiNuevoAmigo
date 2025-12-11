@@ -69,6 +69,9 @@ $stmt->close();
                         <input type="hidden" name="action" value="editar">
                         <input type="hidden" name="animal_id" value="<?php echo htmlspecialchars($animal_id, ENT_QUOTES, 'UTF-8'); ?>">
                         <input type="hidden" name="refugio_id" value="<?php echo htmlspecialchars($refugio_id, ENT_QUOTES, 'UTF-8'); ?>">
+                        
+                        <!-- Campo oculto para las fotos a eliminar -->
+                        <input type="hidden" id="fotosEliminar" name="fotos_eliminar" value="">
 
                         <!-- Información básica -->
                         <h5 class="text-success mb-3">Información Básica</h5>
@@ -207,9 +210,12 @@ $stmt->close();
                                         <!-- Foto existente -->
                                         <img src="../uploads/animals/<?php echo htmlspecialchars($foto['ruta_foto'], ENT_QUOTES, 'UTF-8'); ?>" class="card-img-top" alt="Foto animal" style="height: 150px; object-fit: cover;">
                                         <div class="card-body p-2 d-flex flex-column">
+                                            <?php if ($i === 0): ?>
+                                                <span class="badge bg-success mb-2 align-self-start">Principal</span>
+                                            <?php endif; ?>
                                             <div class="mt-auto">
                                                 <button type="button" class="btn btn-sm btn-danger w-100" onclick="confirmarEliminarFoto(<?php echo $foto['id']; ?>, <?php echo $i; ?>)">
-                                                    🗑️ Eliminar
+                                                    🗑️ Cambiar
                                                 </button>
                                             </div>
                                         </div>
@@ -248,34 +254,31 @@ $stmt->close();
 <?php require_once '../includes/footer.php'; ?>
 
 <script>
-// Cuando se elimina una foto existente, recarga la página para actualizar
+// Array para guardar IDs de fotos a eliminar
+let fotosAEliminar = [];
+
+// Cuando el usuario hace clic en eliminar una foto - marcarla para eliminar
 function confirmarEliminarFoto(fotoId, slotIndex) {
-    if (confirm('¿Estás seguro de que quieres eliminar esta foto?')) {
-        // Crear un formulario temporal para enviar la solicitud
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '../processes/animal_process.php';
+    if (confirm('¿Estás seguro de que quieres eliminar esta foto? Se borrará cuando guardes los cambios.')) {
+        // Agregar el ID a la lista de fotos a eliminar
+        fotosAEliminar.push(fotoId);
         
-        const actionInput = document.createElement('input');
-        actionInput.type = 'hidden';
-        actionInput.name = 'action';
-        actionInput.value = 'eliminar_foto';
+        // Actualizar el valor del input oculto
+        document.getElementById('fotosEliminar').value = fotosAEliminar.join(',');
         
-        const fotoIdInput = document.createElement('input');
-        fotoIdInput.type = 'hidden';
-        fotoIdInput.name = 'foto_id';
-        fotoIdInput.value = fotoId;
+        // Limpiar el slot visualmente
+        const slot = document.querySelector(`.foto-slot[data-slot="${slotIndex}"]`);
+        slot.innerHTML = `
+            <div class="card-body p-3 d-flex flex-column align-items-center justify-content-center" style="height: 180px; background-color: #f8f9fa; cursor: pointer;" onclick="document.getElementById('foto-input-${slotIndex}').click()">
+                <div class="text-center text-muted">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">📸</div>
+                    <small>Haz clic para subir foto</small>
+                </div>
+            </div>
+        `;
         
-        const animalIdInput = document.createElement('input');
-        animalIdInput.type = 'hidden';
-        animalIdInput.name = 'animal_id';
-        animalIdInput.value = <?php echo $animal_id; ?>;
-        
-        form.appendChild(actionInput);
-        form.appendChild(fotoIdInput);
-        form.appendChild(animalIdInput);
-        document.body.appendChild(form);
-        form.submit();
+        // Limpiar el data-foto-id para que la validación no lo cuente
+        slot.dataset.fotoId = '';
     }
 }
 

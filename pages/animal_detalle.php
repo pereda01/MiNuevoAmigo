@@ -184,7 +184,7 @@ $fotos_result = $conn->query($fotos_sql);
                 <form action="../processes/solicitud_process.php" method="POST">
                     <input type="hidden" name="animal_id" value="<?php echo $animal['id']; ?>">
                     <div class="mb-3">
-                        <label class="form-label">Cuéntanos por qué quieres adoptar a <?php echo $animal['nombre']; ?>:</label>
+                        <label class="form-label">Cuéntanos por qué quieres adoptar a <?php echo $animal['nombre']; ?><br>Recuerda cuantos más detalles des, mejor será la valoración de tu solicitud.</label>
                         <textarea class="form-control" name="mensaje" rows="4" 
                                   placeholder="Comparte información sobre tu hogar, experiencia con mascotas, etc..." 
                                   required></textarea>

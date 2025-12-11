@@ -238,7 +238,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                nivel_energia = ?, relacion_ninos = ?, relacion_otros_animales = ?, peso = ?, 
                                necesidades_especiales = ? WHERE id = ? AND id_refugio = ?");
 
-        $stmt->bind_param("sssssssisisisidii", 
+        $stmt->bind_param("sssssssisisssdsii", 
             $nombre, $tipo, $edad_categoria, $sexo, $raza, $tamano, $descripcion,
             $vacunado, $vacunas, $esterilizado, $nivel_energia, $relacion_ninos,
             $relacion_otros_animales, $peso, $necesidades_especiales, $animal_id, $refugio_id);
@@ -246,8 +246,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($stmt->execute()) {
             $stmt->close();
             
+            // Procesar eliminación de fotos marcadas
+            if (!empty($_POST['fotos_eliminar'])) {
+                $fotosEliminarIds = explode(',', $_POST['fotos_eliminar']);
+                foreach ($fotosEliminarIds as $foto_id) {
+                    $foto_id = intval(trim($foto_id));
+                    if ($foto_id > 0) {
+                        $stmt = $conn->prepare("SELECT ruta_foto FROM fotos_animales WHERE id = ? AND id_animal = ?");
+                        $stmt->bind_param("ii", $foto_id, $animal_id);
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+                        if ($result->num_rows > 0) {
+                            $foto = $result->fetch_assoc();
+                            $file_path = '../uploads/animals/' . $foto['ruta_foto'];
+                            if (file_exists($file_path)) {
+                                unlink($file_path);
+                            }
+                            $del_stmt = $conn->prepare("DELETE FROM fotos_animales WHERE id = ? AND id_animal = ?");
+                            $del_stmt->bind_param("ii", $foto_id, $animal_id);
+                            $del_stmt->execute();
+                            $del_stmt->close();
+                        }
+                        $stmt->close();
+                    }
+                }
+            }
+            
             // Procesar nuevas fotos
-            // Contar cuántas fotos actuales tiene el animal
+            // Contar cuántas fotos actuales tiene el animal después de eliminar
             $stmt = $conn->prepare("SELECT COUNT(*) as total FROM fotos_animales WHERE id_animal = ?");
             $stmt->bind_param("i", $animal_id);
             $stmt->execute();
@@ -258,11 +284,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Contar nuevas fotos que se van a subir
             $nuevasFotos = 0;
-            if (!empty($_FILES['fotos']['name'][0])) {
-                foreach ($_FILES['fotos']['tmp_name'] as $key => $tmp_name) {
-                    if ($_FILES['fotos']['error'][$key] === 0) {
-                        $nuevasFotos++;
-                    }
+            $hayFotos = false;
+            
+            // Verificar si hay cualquier archivo subido
+            foreach ($_FILES['fotos']['tmp_name'] as $key => $tmp_name) {
+                if ($_FILES['fotos']['error'][$key] === 0 && !empty($_FILES['fotos']['name'][$key])) {
+                    $nuevasFotos++;
+                    $hayFotos = true;
                 }
             }
             
@@ -274,7 +302,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             
             // Procesar nuevas fotos si se subieron
-            if (!empty($_FILES['fotos']['name'][0])) {
+            if ($hayFotos) {
                 procesarFotos($animal_id, $conn);
             }
 

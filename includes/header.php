@@ -63,7 +63,7 @@ $logout_path = $base_path . 'pages/logout.php';
               <a class="nav-link" href="<?php echo $profile_path; ?>"><span class="nav-emoji" aria-hidden="true">👤</span> Mi Perfil</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="<?php echo $logout_path; ?>"><span class="nav-emoji" aria-hidden="true">🔒</span> Cerrar Sesión</a>
+              <a class="nav-link" href="<?php echo $logout_path; ?>" onclick="return confirm('¿Estás seguro de que deseas cerrar sesión?');"><span class="nav-emoji" aria-hidden="true">🔒</span> Cerrar Sesión</a>
             </li>
           <?php else: ?>
             <li class="nav-item">

@@ -190,29 +190,32 @@ $prefill = [
                         </div>
 
                         <!-- Fotos -->
-                        <h5 class="text-success mb-3 mt-4">Fotos del Animal</h5>
-                        <div class="mb-4">
-                            <label class="form-label">Subir hasta 4 fotos * (al menos 1 requerida)</label>
-                            <ul class="list-group mb-2">
-                                <li class="list-group-item">
-                                    <input type="file" class="form-control" name="fotos[]" accept="image/*" required>
-                                    <small class="form-text text-muted">Foto 1</small>
-                                </li>
-                                <li class="list-group-item">
-                                    <input type="file" class="form-control" name="fotos[]" accept="image/*">
-                                    <small class="form-text text-muted">Foto 2</small>
-                                </li>
-                                <li class="list-group-item">
-                                    <input type="file" class="form-control" name="fotos[]" accept="image/*">
-                                    <small class="form-text text-muted">Foto 3</small>
-                                </li>
-                                <li class="list-group-item">
-                                    <input type="file" class="form-control" name="fotos[]" accept="image/*">
-                                    <small class="form-text text-muted">Foto 4</small>
-                                </li>
-                            </ul>
-                            <small class="form-text text-muted">Formatos permitidos: JPG, PNG, GIF</small>
+                        <h5 class="text-success mb-3 mt-4">Fotos del Animal (máximo 4)</h5>
+                        <div class="row mb-4" id="fotosContainer">
+                            <?php 
+                            // Mostrar 4 slots vacíos para agregar fotos
+                            for ($i = 0; $i < 4; $i++): 
+                            ?>
+                            <div class="col-md-6 col-lg-3 mb-3">
+                                <div class="card h-100 position-relative foto-slot" data-slot="<?php echo $i; ?>">
+                                    <!-- Slot vacío para foto nueva -->
+                                    <div class="card-body p-3 d-flex flex-column align-items-center justify-content-center" style="height: 180px; background-color: #f8f9fa; cursor: pointer;" onclick="document.getElementById('foto-input-<?php echo $i; ?>').click()">
+                                        <div class="text-center text-muted">
+                                            <div style="font-size: 2rem; margin-bottom: 0.5rem;">📸</div>
+                                            <small>Haz clic para subir foto</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <?php endfor; ?>
                         </div>
+                        
+                        <!-- Inputs file ocultos para fotos -->
+                        <?php for ($i = 0; $i < 4; $i++): ?>
+                            <input type="file" id="foto-input-<?php echo $i; ?>" class="d-none" name="fotos[]" accept="image/*" <?php echo $i === 0 ? 'required' : ''; ?>>
+                        <?php endfor; ?>
+                        
+                        <small class="form-text text-muted d-block mb-3">Formatos permitidos: JPG, PNG, GIF (máximo 5MB cada una) - Mínimo 1 foto requerida</small>
 
                         <div class="d-grid gap-2 mt-4">
                             <button type="submit" class="btn btn-success btn-lg">Guardar Animal</button>
@@ -226,3 +229,27 @@ $prefill = [
 </div>
 
 <?php require_once '../includes/footer.php'; ?>
+
+<script>
+// Al subir archivo en slot vacío - mostrar preview
+document.querySelectorAll('input[type="file"][name="fotos[]"]').forEach((input, index) => {
+    input.addEventListener('change', function() {
+        if (this.files && this.files.length > 0) {
+            const file = this.files[0];
+            const slot = document.querySelector(`.foto-slot[data-slot="${index}"]`);
+            
+            // Mostrar preview de la foto seleccionada
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                slot.innerHTML = `
+                    <img src="${e.target.result}" class="card-img-top" alt="Preview" style="height: 150px; object-fit: cover;">
+                    <div class="card-body p-2 text-center text-muted">
+                        <small>Foto seleccionada</small>
+                    </div>
+                `;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+});
+</script>
