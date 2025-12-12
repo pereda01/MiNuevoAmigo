@@ -1,4 +1,5 @@
 <?php
+require_once '../includes/header.php';
 require_once '../config/database.php';
 
 // Obtener ID del animal desde la URL
