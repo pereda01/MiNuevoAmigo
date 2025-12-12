@@ -36,7 +36,6 @@ $fotos_sql = "SELECT * FROM fotos_animales WHERE id_animal = $animal_id ORDER BY
 $fotos_result = $conn->query($fotos_sql);
 ?>
 
-<?php require_once '../includes/header.php'; ?>
 
 <div class="container py-4">
     <div class="row">
@@ -51,9 +50,8 @@ $fotos_result = $conn->query($fotos_sql);
                                 <?php while($foto = $fotos_result->fetch_assoc()): ?>
                                     <div class="carousel-item <?php echo $first ? 'active' : ''; ?>">
                                         <img src="../uploads/animals/<?php echo $foto['ruta_foto']; ?>" 
-                                             class="d-block w-100" 
-                                             alt="<?php echo $animal['nombre']; ?>"
-                                             style="height: 400px; object-fit: cover;">
+                                             class="d-block w-100 carousel-img" 
+                                             alt="<?php echo $animal['nombre']; ?>">
                                     </div>
                                     <?php $first = false; ?>
                                 <?php endwhile; ?>
@@ -67,10 +65,9 @@ $fotos_result = $conn->query($fotos_sql);
                         </div>
                     <?php else: ?>
                         <!-- Imagen por defecto si no hay fotos -->
-                        <img src="https://via.placeholder.com/800x400/28a745/ffffff?text=<?php echo urlencode($animal['nombre']); ?>" 
-                             class="card-img-top" 
-                             alt="<?php echo $animal['nombre']; ?>"
-                             style="height: 400px; object-fit: cover;">
+                        <img src="https://via.placeholder.com/800x550/28a745/ffffff?text=<?php echo urlencode($animal['nombre']); ?>" 
+                             class="card-img-top carousel-placeholder" 
+                             alt="<?php echo $animal['nombre']; ?>">
                     <?php endif; ?>
                 </div>
             </div>
