@@ -74,7 +74,7 @@ $result = $conn->query($sql);
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2 class="text-success">📨 Solicitudes de Adopción</h2>
-                <a href="dashboard.php" class="btn btn-outline-success">← Volver al Dashboard</a>
+                <a href="dashboard.php" class="btn btn-outline-success">← Volver al Panel</a>
             </div>
 
             <!-- Filtros de estado -->

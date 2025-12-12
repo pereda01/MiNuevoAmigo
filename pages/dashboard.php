@@ -53,9 +53,9 @@ $stmt->close();
 ?>
 
 <div class="container py-4">
-    <!-- Header del Dashboard -->
+    <!-- Header del Panel -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="text-success">🏠 Dashboard del Refugio</h1>
+        <h1 class="text-success">🏠 Panel del Refugio</h1>
         <a href="agregar_animal.php" class="btn btn-success">➕ Agregar Animal</a>
     </div>
 
